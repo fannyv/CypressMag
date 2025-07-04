@@ -9,8 +9,8 @@ on:
   pull_request:               # pipeline pour chaque PR (toutes branches)
   # Planification quotidienne à 21 h Paris :
   schedule:
-    # Chaque jour à 19:00 UTC ≃ 21:00 CEST (22:00 CET)
-    - cron:  '0 19 * * *'
+    - cron:  '0 19 * * *'     # 21 h CEST (été) – 20 h CET (hiver)
+    - cron:  '0 20 * * *'     # 21 h CET (hiver)
   # Lancement manuel depuis l’UI GitHub
   workflow_dispatch:
     inputs:
@@ -29,7 +29,7 @@ concurrency:
 # ─────────────────────────────
 jobs:
   cypress-run:
-    runs-on: ubuntu-latest       
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -42,24 +42,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'            
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Cypress
+      # Décommente cet encadré si tes tests ont besoin d’un serveur local
+      # - name: Start app
+      #   run: |
+      #     npm start &
+      #     sleep 10    # laisse le temps au serveur de s’amorcer
+      #   env:
+      #     NODE_ENV: test
+
+      - name: Run Cypress (sans Dashboard)
         uses: cypress-io/github-action@v6.8.0
         with:
-          record: true
-          parallel: true
           browser: ${{ inputs.browser || 'chrome' }}
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-          SAUCE_USERNAME:      ${{ secrets.SAUCE_USERNAME }}
-          SAUCE_ACCESS_KEY:    ${{ secrets.SAUCE_ACCESS_KEY }}
+          # record et parallel sont absents → pas de dépendance à Cypress Cloud
 
-      - name: Upload artefacts
-        if: always()              
+      - name: Upload artefacts (vidéos, screenshots)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-artifacts
